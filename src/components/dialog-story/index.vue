@@ -131,7 +131,6 @@ const videoRef = ref<InstanceType<typeof VideoPlayer> | null>(null);
 const currentVideo = computed(() => props.videos[currentIndex.value]);
 
 const { $isMobile } = useMobile();
-const isChromeOniOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) && /CriOS/i.test(navigator.userAgent);
 const isSafariOniOS =
 	/iPhone|iPad|iPod/i.test(navigator.userAgent) &&
 	/Safari/i.test(navigator.userAgent) &&
