@@ -63,7 +63,10 @@
 
 						>
 						<!-- Controls -->
-						<div class="absolute top-8 right-4 z-50 flex gap-2">
+						<div
+							id="stories-control"
+							class="absolute top-8 right-4 z-50 flex gap-2"
+						>
 							<button
 								@click="togglePlaying"
 								class="cursor-pointer focus:outline-none"
@@ -178,16 +181,13 @@ function close() {
 }
 
 async function nextVideo() {
-	console.log("++1111111");
-
-	if (currentIndex.value < props.videos.length - 1) {
-		currentIndex.value++;
-		progress.value = 0;
-		isVolumn.value = true;
-		isPlaying.value = true;
-		await nextTick();
-		videoRef.value?.handlePlay();
-	}
+	if (currentIndex.value >= props.videos.length - 1) return;
+	currentIndex.value++;
+	progress.value = 0;
+	isVolumn.value = true;
+	isPlaying.value = true;
+	await nextTick();
+	videoRef.value?.handlePlay();
 }
 
 async function prevVideo() {

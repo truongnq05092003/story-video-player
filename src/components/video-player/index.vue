@@ -1,6 +1,16 @@
 <template>
-	<div class="relative w-full h-full aspect-[9/16] rounded-xl overflow-hidden">
+	<div
+		ref="divRef"
+		class="relative w-full h-full aspect-[9/16] rounded-xl overflow-hidden"
+		@click="onClickAction"
+	>
 		<img
+			v-if="isImageMode"
+			:src="video.src ?? ''"
+			class="absolute inset-0 w-full h-full object-cover z-50 transition-opacity duration-300"
+		/>
+		<img
+			v-else
 			:src="video.thumbnail ?? ''"
 			:class="[
 				'absolute inset-0 w-full h-full object-cover z-50 transition-opacity duration-300',
@@ -8,12 +18,13 @@
 			]"
 		/>
 		<video
+			v-show="!isImageMode"
 			ref="videoRef"
 			class="w-full h-full object-cover absolute inset-0 z-50"
 			autoplay
 			playsinline
 			:controls="false"
-			@click="onVideoClick"
+			data-object-fit="cover"
 		></video>
 	</div>
 </template>
@@ -31,34 +42,49 @@ const emit = defineEmits<{
 	(e: "offsetL"): void;
 }>();
 
+const divRef = ref<HTMLElement | null>(null);
 const videoRef = ref<HTMLVideoElement | null>(null);
-const isPlaying = ref(false);
+const isPlaying = ref<boolean>(false);
+const isImageMode = ref<boolean>(false);
+
 let hls: Hls | null = null;
 let rafId: number | null = null;
+let imageTimeout: number | null = null;
+let imageStartTime = 0;
+let imageElapsed = 0;
 
-let lastTap = 0;
-const tapThreshold = 400; // ms
+const isImage = (url: string): boolean => {
+	return /\.(jpe?g|png|gif|webp|bmp|svg)(\?.*)?$/i.test(url);
+};
 
-function onVideoClick(e: MouseEvent) {
-	const now = Date.now();
-	if (now - lastTap < tapThreshold) return;
-	lastTap = now;
-
-	const videoEl = videoRef.value;
-	if (!videoEl) return;
-
-	const rect = videoEl.getBoundingClientRect();
+function onClickAction(e: MouseEvent) {
+	const div = divRef.value;
+	if (!div) return;
+	const rect = div.getBoundingClientRect();
 	const x = e.clientX - rect.left;
 	const mid = rect.width / 2;
-
 	if (x < mid) {
 		emit("offsetL");
 	} else {
 		emit("offsetR");
 	}
+	isPlaying.value = false;
+	isImageMode.value = false;
+	cancelAnimationFrame(rafId!);
+	emit("progress", 0);
 }
 
 function animateProgress() {
+	emit("progress", 0);
+	if (isImageMode.value) {
+		const elapsed = Date.now() - imageStartTime;
+		const progress = Math.min((elapsed / 3000) * 100, 100);
+		emit("progress", progress);
+		if (progress < 100 && isPlaying.value) {
+			rafId = requestAnimationFrame(animateProgress);
+		}
+		return;
+	}
 	if (!videoRef.value || !isPlaying.value) return;
 	const { currentTime, duration } = videoRef.value;
 	if (!isNaN(duration) && duration > 0) {
@@ -67,21 +93,50 @@ function animateProgress() {
 	rafId = requestAnimationFrame(animateProgress);
 }
 
-function handlePlay() {
-	if (!videoRef.value) return;
+function handlePlayImage() {
+	isPlaying.value = true;
+	imageStartTime = Date.now() - imageElapsed;
+	animateProgress();
+	const remaining = 3000 - imageElapsed;
+	imageTimeout = window.setTimeout(() => {
+		emit("ended");
+		isPlaying.value = false;
+		isImageMode.value = true;
+		cancelAnimationFrame(rafId!);
+	}, remaining);
+}
 
+function handlePauseImage() {
+	isPlaying.value = false;
+	if (imageStartTime) {
+		imageElapsed = Date.now() - imageStartTime;
+	}
+	clearTimeout(imageTimeout!);
+	cancelAnimationFrame(rafId!);
+}
+
+function handlePlay() {
+	if (isImageMode.value) {
+		handlePlayImage();
+		return;
+	}
+	if (!videoRef.value) return;
 	videoRef.value.play();
 	isPlaying.value = true;
 	animateProgress();
-
 	videoRef.value.onended = () => {
 		emit("ended");
 		isPlaying.value = false;
+		isImageMode.value = false;
 		cancelAnimationFrame(rafId!);
 	};
 }
 
 function handlePause() {
+	if (isImageMode.value) {
+		handlePauseImage();
+		return;
+	}
 	if (!videoRef.value) return;
 	videoRef.value.pause();
 	cancelAnimationFrame(rafId!);
@@ -102,63 +157,68 @@ function toggleMute(muted: boolean) {
 	videoRef.value.muted = muted;
 }
 
-function onVisibilityChange() {
+async function setupHLS(src: string) {
 	if (!videoRef.value) return;
 
-	if (document.visibilityState === "hidden") {
-		handlePause();
-	} else if (document.visibilityState === "visible") {
-		handlePlay();
-	}
-}
+	// reset state
+	cancelAnimationFrame(rafId!);
+	clearTimeout(imageTimeout!);
+	isPlaying.value = false;
+	imageElapsed = 0;
 
-onMounted(() => {
-	if (!videoRef.value || !props.video.src || !props.initOnMount) return;
+	if (hls) {
+		hls.destroy();
+		hls = null;
+	}
+
+	videoRef.value.src = "";
+	videoRef.value.load();
+
+	isImageMode.value = isImage(src);
+
+	if (isImageMode.value) {
+		handlePlayImage();
+		return;
+	}
 
 	if (Hls.isSupported()) {
 		hls = new Hls({ maxBufferLength: 60 });
 		hls.attachMedia(videoRef.value);
 		hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-			hls?.loadSource(props.video.src!);
+			hls?.loadSource(src);
+		});
+		hls.on(Hls.Events.MANIFEST_PARSED, () => {
+			handlePlay();
 		});
 		hls.on(Hls.Events.ERROR, (_, data) => {
 			console.error("HLS.js error:", data);
 		});
-	} else if (videoRef.value.canPlayType("application/vnd.apple.mpegurl")) {
-		videoRef.value.src = props.video.src;
+	} else {
+		videoRef.value.src = src;
+		await nextTick();
 		videoRef.value.addEventListener("loadedmetadata", () => {
 			handlePlay();
 		});
 	}
-	document.addEventListener("visibilitychange", onVisibilityChange);
+}
+
+onMounted(() => {
+	if (props.initOnMount && props.video.src) {
+		setupHLS(props.video.src);
+	}
 });
 
-watch([() => props.video.src, () => props.video.id], async ([_src]) => {
-	if (!videoRef.value || !_src) return;
-
-	isPlaying.value = false;
-	cancelAnimationFrame(rafId!);
-
-	if (Hls.isSupported()) {
-		if (hls && hls.media !== videoRef.value) {
-			hls.attachMedia(videoRef.value);
-		}
-		hls?.loadSource(_src);
-		hls?.once(Hls.Events.MANIFEST_PARSED, () => {
-			handlePlay();
-		});
-	} else {
-		videoRef.value.src = _src;
-		await nextTick();
-		handlePlay();
+watch([() => props.video.src, () => props.video.id], async ([newSrc]) => {
+	if (newSrc) {
+		await setupHLS(newSrc);
 	}
 });
 
 onUnmounted(() => {
 	cancelAnimationFrame(rafId!);
+	clearTimeout(imageTimeout!);
 	hls?.destroy();
 	hls = null;
-	document.removeEventListener("visibilitychange", onVisibilityChange);
 });
 
 defineExpose({ handlePlay, handlePause, handleVolume, toggleMute });
