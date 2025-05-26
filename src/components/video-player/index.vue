@@ -35,7 +35,6 @@
 import { ref, onMounted, onUnmounted, defineExpose, watch, nextTick } from "vue";
 import type { IVideo } from "../../types/common";
 import Hls from "hls.js";
-import { VImg } from "vuetify/components";
 
 const props = defineProps<{ video: IVideo; initOnMount?: boolean }>();
 const emit = defineEmits<{
