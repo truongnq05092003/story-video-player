@@ -14,11 +14,11 @@ import Stories from "./components/stories/index.vue";
 
 const videos = ref<IVideo[]>(
 	[
-		"https://flipfit-cdn.akamaized.net/flip_hls/6656423247ffe600199e8363-15125d/video_h1.m3u8",
-		"https://flipfit-cdn.akamaized.net/flip_hls/662aae7a42cd740019b91dec-3e114f/video_h1.m3u8",
-		"https://flipfit-cdn.akamaized.net/flip_hls/663e5a1542cd740019b97dfa-ccf0e6/video_h1.m3u8",
-		"https://flipfit-cdn.akamaized.net/flip_hls/6656423247ffe600199e8363-15125d/video_h1.m3u8",
-		"https://flipfit-cdn.akamaized.net/flip_hls/664d87dfe8e47500199ee49e-dbd56b/video_h1.m3u8",
+		"https://ddjk7crxx6y3u.cloudfront.net/32c6b2ed-0043-4370-9f42-109da365ae66-test-short-video.m3u8",
+		"https://ddjk7crxx6y3u.cloudfront.net/32c6b2ed-0043-4370-9f42-109da365ae66-test-short-video.m3u8",
+		"https://ddjk7crxx6y3u.cloudfront.net/32c6b2ed-0043-4370-9f42-109da365ae66-test-short-video.m3u8",
+		"https://ddjk7crxx6y3u.cloudfront.net/32c6b2ed-0043-4370-9f42-109da365ae66-test-short-video.m3u8",
+		"https://ddjk7crxx6y3u.cloudfront.net/32c6b2ed-0043-4370-9f42-109da365ae66-test-short-video.m3u8",
 	].map((src, index) => ({
 		id: index + 1,
 		title: `Story ${index + 1}`,
