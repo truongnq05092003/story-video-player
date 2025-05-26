@@ -33,7 +33,7 @@
 					<DialogPanel
 						:class="[
 							'relative w-[calc(100vw-32px)] md:w-full max-w-lg aspect-[9/16]',
-							$isSafari ? 'h-[calc(100vh-100px)]' : 'h-[calc(100vh-32px)]',
+							isSafariOniOS ? 'h-[calc(100vh-100px)]' : 'h-[calc(100vh-32px)]',
 						]"
 					>
 						<VideoPlayer
@@ -131,7 +131,11 @@ const videoRef = ref<InstanceType<typeof VideoPlayer> | null>(null);
 const currentVideo = computed(() => props.videos[currentIndex.value]);
 
 const { $isMobile } = useMobile();
-const $isSafari = computed(() => /^((?!chrome|android).)*safari/i.test(navigator.userAgent));
+const isChromeOniOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) && /CriOS/i.test(navigator.userAgent);
+const isSafariOniOS =
+	/iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+	/Safari/i.test(navigator.userAgent) &&
+	!/CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent);
 
 watch(
 	[() => props.videoID, () => props.isOpen],
@@ -175,13 +179,16 @@ function close() {
 }
 
 async function nextVideo() {
-	if (currentIndex.value === props.videos.length - 1) return;
-	currentIndex.value++;
-	progress.value = 0;
-	isVolumn.value = true;
-	isPlaying.value = true;
-	await nextTick();
-	videoRef.value?.handlePlay();
+	console.log("++1111111");
+
+	if (currentIndex.value < props.videos.length - 1) {
+		currentIndex.value++;
+		progress.value = 0;
+		isVolumn.value = true;
+		isPlaying.value = true;
+		await nextTick();
+		videoRef.value?.handlePlay();
+	}
 }
 
 async function prevVideo() {
