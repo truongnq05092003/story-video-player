@@ -133,29 +133,26 @@ onMounted(() => {
 	document.addEventListener("visibilitychange", onVisibilityChange);
 });
 
-watch(
-	() => props.video.src,
-	async (newSrc) => {
-		if (!videoRef.value || !newSrc) return;
+watch([() => props.video.src, () => props.video.id], async ([_src]) => {
+	if (!videoRef.value || !_src) return;
 
-		isPlaying.value = false;
-		cancelAnimationFrame(rafId!);
+	isPlaying.value = false;
+	cancelAnimationFrame(rafId!);
 
-		if (Hls.isSupported()) {
-			if (hls && hls.media !== videoRef.value) {
-				hls.attachMedia(videoRef.value);
-			}
-			hls?.loadSource(newSrc);
-			hls?.once(Hls.Events.MANIFEST_PARSED, () => {
-				handlePlay();
-			});
-		} else {
-			videoRef.value.src = newSrc;
-			await nextTick();
-			handlePlay();
+	if (Hls.isSupported()) {
+		if (hls && hls.media !== videoRef.value) {
+			hls.attachMedia(videoRef.value);
 		}
+		hls?.loadSource(_src);
+		hls?.once(Hls.Events.MANIFEST_PARSED, () => {
+			handlePlay();
+		});
+	} else {
+		videoRef.value.src = _src;
+		await nextTick();
+		handlePlay();
 	}
-);
+});
 
 onUnmounted(() => {
 	cancelAnimationFrame(rafId!);
