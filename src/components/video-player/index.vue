@@ -7,11 +7,13 @@
 		<img
 			v-if="isImageMode"
 			:src="video.src ?? ''"
+			aspect-ratio="16/9"
 			class="absolute inset-0 w-full h-full object-cover z-50 transition-opacity duration-300"
 		/>
 		<img
 			v-else
 			:src="video.thumbnail ?? ''"
+			aspect-ratio="16/9"
 			:class="[
 				'absolute inset-0 w-full h-full object-cover z-50 transition-opacity duration-300',
 				isPlaying ? 'opacity-0' : 'opacity-100',
@@ -33,6 +35,7 @@
 import { ref, onMounted, onUnmounted, defineExpose, watch, nextTick } from "vue";
 import type { IVideo } from "../../types/common";
 import Hls from "hls.js";
+import { VImg } from "vuetify/components";
 
 const props = defineProps<{ video: IVideo; initOnMount?: boolean }>();
 const emit = defineEmits<{
@@ -99,6 +102,7 @@ function handlePlayImage() {
 	animateProgress();
 	const remaining = 3000 - imageElapsed;
 	imageTimeout = window.setTimeout(() => {
+		if (!isImageMode.value) return;
 		emit("ended");
 		isPlaying.value = false;
 		isImageMode.value = true;
@@ -164,6 +168,7 @@ async function setupHLS(src: string) {
 	cancelAnimationFrame(rafId!);
 	clearTimeout(imageTimeout!);
 	isPlaying.value = false;
+	isImageMode.value = false;
 	imageElapsed = 0;
 
 	if (hls) {
