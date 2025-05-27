@@ -43,8 +43,9 @@
 							:init-on-mount="true"
 							@ended="handleEnded"
 							@progress="updateProgress"
-							@offsetL="prevVideo"
-							@offsetR="nextVideo"
+							@offset-l="prevVideo"
+							@offset-r="nextVideo"
+							@offset-b="mouseEventUp"
 						/>
 
 						<!-- Progress Bars -->
@@ -180,23 +181,34 @@ function close() {
 	isPlaying.value = true;
 }
 
-async function nextVideo() {
-	if (currentIndex.value >= props.videos.length - 1) return;
-	currentIndex.value++;
+async function playCurrentVideo() {
+	if (!videoRef.value || !currentVideo.value?.src) return;
 	progress.value = 0;
 	isVolumn.value = true;
 	isPlaying.value = true;
 	await nextTick();
-	videoRef.value?.handlePlay();
+	await videoRef.value.setupHLS(currentVideo.value.src);
+}
+
+async function nextVideo() {
+	if (currentIndex.value >= props.videos.length - 1) {
+		await playCurrentVideo();
+		return;
+	}
+	currentIndex.value++;
+	await playCurrentVideo();
 }
 
 async function prevVideo() {
-	if (currentIndex.value <= 0) return;
+	if (currentIndex.value <= 0) {
+		await playCurrentVideo();
+		return;
+	}
 	currentIndex.value--;
-	progress.value = 0;
-	isVolumn.value = true;
-	isPlaying.value = true;
-	await nextTick();
-	videoRef.value?.handlePlay();
+	await playCurrentVideo();
+}
+
+async function mouseEventUp() {
+	confirm("Do you want to close the story?") && close();
 }
 </script>

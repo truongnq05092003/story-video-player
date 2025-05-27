@@ -5,20 +5,14 @@
 		@click="onClickAction"
 	>
 		<img
-			v-if="isImageMode"
-			:src="video.src ?? ''"
-			aspect-ratio="16/9"
-			class="absolute inset-0 w-full h-full object-cover z-50 transition-opacity duration-300"
-		/>
-		<img
-			v-else
-			:src="video.thumbnail ?? ''"
+			:src="isImageMode ? video.src ?? '' : video.thumbnail ?? ''"
 			aspect-ratio="16/9"
 			:class="[
 				'absolute inset-0 w-full h-full object-cover z-50 transition-opacity duration-300',
-				isPlaying ? 'opacity-0' : 'opacity-100',
+				!isImageMode ? (isPlaying ? 'opacity-0' : 'opacity-100') : '',
 			]"
 		/>
+
 		<video
 			v-show="!isImageMode"
 			ref="videoRef"
@@ -40,8 +34,9 @@ const props = defineProps<{ video: IVideo; initOnMount?: boolean }>();
 const emit = defineEmits<{
 	(e: "progress", value: number): void;
 	(e: "ended"): void;
-	(e: "offsetR"): void;
-	(e: "offsetL"): void;
+	(e: "offsetR"): void; // mouse action right
+	(e: "offsetL"): void; // mouse action left
+	(e: "offsetB"): void; // mouse action bottom
 }>();
 
 const divRef = ref<HTMLElement | null>(null);
@@ -54,6 +49,47 @@ let rafId: number | null = null;
 let imageTimeout: number | null = null;
 let imageStartTime = 0;
 let imageElapsed = 0;
+const TIMER_IMG = 3000;
+
+const swipeStart = ref<{ x: number; y: number; time: number } | null>(null);
+const minDistance = 50;
+const maxTime = 500;
+
+function handleTouchStart(e: TouchEvent | MouseEvent) {
+	const touch = "touches" in e ? e.touches[0] : (e as MouseEvent);
+	swipeStart.value = {
+		x: touch.pageX,
+		y: touch.pageY,
+		time: Date.now(),
+	};
+}
+
+function handleTouchEnd(e: TouchEvent | MouseEvent) {
+	if (!swipeStart.value) return;
+
+	const touch = "changedTouches" in e ? e.changedTouches[0] : (e as MouseEvent);
+	const dx = touch.pageX - swipeStart.value.x;
+	const dy = touch.pageY - swipeStart.value.y;
+	const dt = Date.now() - swipeStart.value.time;
+
+	if (dt > maxTime) {
+		swipeStart.value = null;
+		return;
+	}
+
+	if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > minDistance) {
+		if (dx > 0) emit("offsetL");
+		else emit("offsetR");
+		emit("progress", 0);
+		isPlaying.value = false;
+		isImageMode.value = false;
+		cancelAnimationFrame(rafId!);
+	} else if (Math.abs(dy) > minDistance && dy < 0) {
+		emit("offsetB");
+	}
+
+	swipeStart.value = null;
+}
 
 const isImage = (url: string): boolean => {
 	return /\.(jpe?g|png|gif|webp|bmp|svg)(\?.*)?$/i.test(url);
@@ -70,17 +106,17 @@ function onClickAction(e: MouseEvent) {
 	} else {
 		emit("offsetR");
 	}
+	emit("progress", 0);
 	isPlaying.value = false;
 	isImageMode.value = false;
 	cancelAnimationFrame(rafId!);
-	emit("progress", 0);
 }
 
 function animateProgress() {
 	emit("progress", 0);
 	if (isImageMode.value) {
 		const elapsed = Date.now() - imageStartTime;
-		const progress = Math.min((elapsed / 3000) * 100, 100);
+		const progress = Math.min((elapsed / TIMER_IMG) * 100, 100);
 		emit("progress", progress);
 		if (progress < 100 && isPlaying.value) {
 			rafId = requestAnimationFrame(animateProgress);
@@ -97,9 +133,14 @@ function animateProgress() {
 
 function handlePlayImage() {
 	isPlaying.value = true;
+
+	clearTimeout(imageTimeout!);
+	cancelAnimationFrame(rafId!);
+
 	imageStartTime = Date.now() - imageElapsed;
 	animateProgress();
-	const remaining = 3000 - imageElapsed;
+
+	const remaining = TIMER_IMG - imageElapsed;
 	imageTimeout = window.setTimeout(() => {
 		if (!isImageMode.value) return;
 		emit("ended");
@@ -129,6 +170,7 @@ function handlePlay() {
 	animateProgress();
 	videoRef.value.onended = () => {
 		emit("ended");
+		emit("progress", 0);
 		isPlaying.value = false;
 		isImageMode.value = false;
 		cancelAnimationFrame(rafId!);
@@ -175,7 +217,8 @@ async function setupHLS(src: string) {
 		hls = null;
 	}
 
-	videoRef.value.src = "";
+	videoRef.value.pause();
+	videoRef.value.removeAttribute("src");
 	videoRef.value.load();
 
 	isImageMode.value = isImage(src);
@@ -207,9 +250,15 @@ async function setupHLS(src: string) {
 }
 
 onMounted(() => {
-	if (props.initOnMount && props.video.src) {
-		setupHLS(props.video.src);
-	}
+	const div = divRef.value;
+	if (!div || !props.initOnMount || !props.video.src) return;
+
+	div.addEventListener("touchstart", handleTouchStart);
+	div.addEventListener("mousedown", handleTouchStart);
+	div.addEventListener("touchend", handleTouchEnd);
+	document.addEventListener("mouseup", handleTouchEnd);
+
+	setupHLS(props.video.src);
 });
 
 watch([() => props.video.src, () => props.video.id], async ([newSrc]) => {
@@ -219,13 +268,23 @@ watch([() => props.video.src, () => props.video.id], async ([newSrc]) => {
 });
 
 onUnmounted(() => {
+	// remove event listeners
+	const div = divRef.value;
+	if (!div) return;
+
+	div.removeEventListener("touchstart", handleTouchStart);
+	div.removeEventListener("mousedown", handleTouchStart);
+	div.removeEventListener("touchend", handleTouchEnd);
+	document.removeEventListener("mouseup", handleTouchEnd);
+
+	// clean up HLS and video state
 	cancelAnimationFrame(rafId!);
 	clearTimeout(imageTimeout!);
 	hls?.destroy();
 	hls = null;
 });
 
-defineExpose({ handlePlay, handlePause, handleVolume, toggleMute });
+defineExpose({ handlePlay, handlePause, handleVolume, toggleMute, setupHLS });
 </script>
 
 <style scoped></style>
