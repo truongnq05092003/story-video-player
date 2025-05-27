@@ -52,6 +52,22 @@ const MOCK_API = [
 		thumbnail:
 			"https://alicestyle-ccc-prod.s3.ap-northeast-1.amazonaws.com/PD094648331462383_ee3d2e33-cf49-4f2b-9e2b-3bc57b4d3440_large.jpg",
 	},
+	{
+		id: 6,
+		title: "Story 6",
+		src: "https://alicestyle-ccc-prod.s3.ap-northeast-1.amazonaws.com/PD387512720842177_8923aa3f-efde-4452-845a-eba4240ef123_large.jpg",
+		// src: "https://flipfit-cdn.akamaized.net/flip_hls/664d87dfe8e47500199ee49e-dbd56b/video_h1.m3u8",
+		thumbnail:
+			"https://alicestyle-ccc-prod.s3.ap-northeast-1.amazonaws.com/PD387512720842177_8923aa3f-efde-4452-845a-eba4240ef123_large.jpg",
+	},
+	{
+		id: 7,
+		title: "Story 7",
+		src: "https://alicestyle-ccc-prod.s3.ap-northeast-1.amazonaws.com/PD355226389206952_7ebdce49-1f09-457f-8c63-9f06f7a56f47_large.jpg",
+		// src: "https://flipfit-cdn.akamaized.net/flip_hls/664d87dfe8e47500199ee49e-dbd56b/video_h1.m3u8",
+		thumbnail:
+			"https://alicestyle-ccc-prod.s3.ap-northeast-1.amazonaws.com/PD355226389206952_7ebdce49-1f09-457f-8c63-9f06f7a56f47_large.jpg",
+	},
 ];
 
 const videos = ref<IVideo[]>(MOCK_API);

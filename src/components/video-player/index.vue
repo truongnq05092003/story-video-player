@@ -238,7 +238,11 @@ async function setupHLS(src: string) {
 			handlePlay();
 		});
 		hls.on(Hls.Events.ERROR, (_, data) => {
-			console.error("HLS.js error:", data);
+			let errorType = data.type;
+			let errorDetails = data.details;
+			let errorFatal = data.fatal;
+
+			console.log(`[HLS Error] Type: ${errorType}, Details: ${errorDetails}, Fatal: ${errorFatal}`);
 		});
 	} else {
 		videoRef.value.src = src;
