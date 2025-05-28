@@ -47,7 +47,6 @@
 							@offset-r="nextVideo"
 							@offset-b="mouseEventUp"
 						/>
-
 						<!-- Progress Bars -->
 						<div class="absolute top-4 left-4 right-4 z-50 flex gap-1">
 							<div
@@ -61,9 +60,7 @@
 								></div>
 							</div>
 						</div>
-
-						>
-						<!-- Controls -->
+						<!-- Control -->
 						<div
 							id="stories-control"
 							class="absolute top-8 right-4 z-50 flex gap-2"
@@ -100,6 +97,30 @@
 								<X class="w-6 h-6 text-white" />
 							</button>
 						</div>
+
+						<!-- Control action -->
+						<button
+							v-if="hasActionPrev"
+							data-action="prev"
+							class="absolute top-1/2 -left-20 z-50 -translate-y-1/2 w-10 h-10 flex items-center justify-center border border-white rounded-full bg-white bg-opacity-10"
+						>
+							<ChevronLeft
+								@click="prevVideo"
+								stroke-width="1.5"
+								class="w-6 h-6 text-white cursor-pointer"
+							/>
+						</button>
+						<button
+							v-if="hasActionNext"
+							data-action="next"
+							class="absolute top-1/2 -right-20 z-50 -translate-y-1/2 w-10 h-10 flex items-center justify-center border border-white rounded-full bg-white bg-opacity-10"
+						>
+							<ChevronRight
+								@click="nextVideo"
+								stroke-width="1.5"
+								class="w-6 h-6 text-white cursor-pointer"
+							/>
+						</button>
 					</DialogPanel>
 				</TransitionChild>
 				<button
@@ -119,7 +140,7 @@ import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from "@headlessu
 import { ref, computed, watch, nextTick } from "vue";
 import VideoPlayer from "../video-player/index.vue";
 import type { IVideo } from "../../types/common";
-import { X, Ellipsis } from "lucide-vue-next";
+import { X, Ellipsis, ChevronLeft, ChevronRight } from "lucide-vue-next";
 import * as LucideIcon from "lucide-vue-next";
 import { useMobile } from "../../composables/useMobile";
 import { useRouter } from "vue-router";
@@ -142,6 +163,9 @@ const isSafariOniOS =
 	/iPhone|iPad|iPod/i.test(navigator.userAgent) &&
 	/Safari/i.test(navigator.userAgent) &&
 	!/CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent);
+
+const hasActionPrev = computed(() => !$isMobile.value && currentIndex.value > 0);
+const hasActionNext = computed(() => !$isMobile.value && currentIndex.value < props.videos.length - 1);
 
 watch(
 	[() => props.videoID, () => props.isOpen],

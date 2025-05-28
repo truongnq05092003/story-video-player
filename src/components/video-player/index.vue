@@ -1,7 +1,7 @@
 <template>
 	<div
 		ref="divRef"
-		class="relative w-full h-full aspect-[9/16] rounded-xl overflow-hidden"
+		class="relative w-full h-full aspect-[9/16] rounded-2xl overflow-hidden"
 		@click="onClickAction"
 	>
 		<img
