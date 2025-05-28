@@ -5,9 +5,9 @@ import "./style.css";
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
+import routes from "./routes";
 
 import App from "./App.vue";
-import routes from "./routes";
 
 const vuetify = createVuetify({
 	components,

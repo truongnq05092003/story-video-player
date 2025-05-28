@@ -122,9 +122,12 @@ import type { IVideo } from "../../types/common";
 import { X, Ellipsis } from "lucide-vue-next";
 import * as LucideIcon from "lucide-vue-next";
 import { useMobile } from "../../composables/useMobile";
+import { useRouter } from "vue-router";
 
 const props = defineProps<{ videos: IVideo[]; isOpen: boolean; videoID?: number }>();
 const emit = defineEmits(["close"]);
+
+const router = useRouter();
 
 const progress = ref<number>(0);
 const currentIndex = ref<number>(0);
@@ -209,6 +212,8 @@ async function prevVideo() {
 }
 
 async function mouseEventUp() {
-	confirm("Do you want to close the story?") && close();
+	if (!currentVideo.value) return;
+	emit("close");
+	router.push(`/view/${currentVideo.value.id}`);
 }
 </script>

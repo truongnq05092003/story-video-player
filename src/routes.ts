@@ -1,11 +1,16 @@
-import { createMemoryHistory, createRouter } from "vue-router";
+import { createWebHistory, createRouter } from "vue-router";
 
+import HomeView from "./views/index.vue";
 import DetailView from "./views/[id]/index.vue";
 
-const routes = [{ path: "/", component: DetailView }];
+const routes = [
+	{ path: "/", component: HomeView },
+	{ path: "/view/:id", component: DetailView },
+	{ path: "/:pathMatch(.*)*", redirect: "/" },
+];
 
 const router = createRouter({
-	history: createMemoryHistory(),
+	history: createWebHistory(),
 	routes,
 });
 
