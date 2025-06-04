@@ -1,0 +1,4 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+sh ./.husky/validate_commit.sh -m "$1" && sh ./.husky/validate_branch.sh
